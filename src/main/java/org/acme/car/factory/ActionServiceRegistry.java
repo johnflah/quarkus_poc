@@ -1,31 +1,51 @@
 package org.acme.car.factory;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.Any;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import lombok.extern.jbosslog.JBossLog;
 import org.acme.car.service.ActionService;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
+@JBossLog
 public class ActionServiceRegistry {
-    private final BeanManager beanManager;
-    private Map<String, ActionService> actionServiceMap;
+    private final Map<String, ActionService> actionServiceMap;
 
-    public ActionServiceRegistry(BeanManager beanManager) {
-        this.beanManager = beanManager;
-    }
-
-    @PostConstruct
-    void init(){
-        actionServiceMap = beanManager.getBeans(ActionService.class)
+    @Inject
+    public ActionServiceRegistry(@Any Instance<ActionService> actionServices){
+        log.trace(actionServices);
+        actionServiceMap = actionServices
                 .stream()
-                .filter( b -> b.getName() != null)
-                .collect(Collectors.toMap(bean -> bean.getName().toUpperCase(), bean -> (ActionService) beanManager.getReference(bean,ActionService.class, beanManager.createCreationalContext(bean))));
+                .filter(bean -> {
+                    Class<?> originalClass = bean.getClass().getSuperclass(); // avoid _ClientProxy
+                    return originalClass.isAnnotationPresent(Named.class);
+                })
+                .collect(Collectors.toMap(
+                        bean -> bean.getClass().getSuperclass().getAnnotation(Named.class).value().toUpperCase(),
+                        bean -> bean
+                ));
+//        actionServiceMap = actionServices
+//                .stream()
+////                .filter(b -> b.getClass().isAnnotationPresent(Named.class))
+//                .collect(Collectors.toMap(
+//                        bean -> bean.getClass().getSimpleName().toUpperCase(),
+//                        bean -> bean
+//                ));
+//        actionServiceMap = actionServices
+//                .stream()
+//                .filter(b -> b.getClass().isAnnotationPresent(Named.class))
+//                .collect(Collectors.toMap(
+//                        bean -> bean.getClass().getAnnotation(Named.class).value().toUpperCase(),
+//                        bean -> bean
+//                ));
     }
 
     public ActionService getService(String key){
-        return actionServiceMap.get(key);
+        return actionServiceMap.get(key.toUpperCase());
     }
 }
