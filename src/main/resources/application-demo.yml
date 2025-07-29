@@ -1,0 +1,19 @@
+
+quarkus:
+  datasource:
+   db-kind: postgresql
+   jdbc:
+     url: jdbc:postgresql://localhost:54321/demodb
+     driver: org.postgresql.Driver
+   username: postgres
+   password: postgres
+
+  hibernate-orm:
+    database:
+      generation: none
+
+
+  flyway:
+   migrate-at-start: true
+   locations: classpath:db/migration,classpath:db/demo
+   table: flyway_schema_history_demo
