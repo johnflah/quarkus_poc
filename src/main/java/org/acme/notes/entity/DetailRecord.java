@@ -1,3 +1,4 @@
+/*
 package org.acme.notes.entity;
 
 import jakarta.persistence.*;
@@ -25,3 +26,4 @@ public class DetailRecord {
     @OneToMany(mappedBy = "detailRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<SubsystemStep> subsystemSteps;
 }
+*/

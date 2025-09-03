@@ -1,3 +1,4 @@
+/*
 package org.acme.notes.entity;
 
 import jakarta.persistence.*; import java.time.Instant; import java.util.List; import java.util.UUID;
@@ -23,3 +24,4 @@ public class Subsystem {
     @OneToMany(mappedBy = "subsystem", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<DetailRecord> detailRecords;
 }
+*/

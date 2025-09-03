@@ -1,3 +1,4 @@
+/*
 package org.acme.notes.entity;
 
 import jakarta.persistence.*;
@@ -52,3 +53,4 @@ public class Note {
         updatedAt = LocalDateTime.now();
     }
 }
+*/
