@@ -17,3 +17,12 @@ quarkus:
     migrate-at-start: true
     locations: classpath:db/migration
     table: flyway_schema_history_demo
+
+#    docker run -d \
+#      --name my-postgres \
+#      -e POSTGRES_USER=postgres \
+#      -e POSTGRES_PASSWORD=postgres \
+#      -e POSTGRES_DB=demodb \
+#      -p 54321:5432 \
+#      postgres:17
+

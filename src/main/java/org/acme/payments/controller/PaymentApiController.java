@@ -1,3 +1,4 @@
+/*
 package org.acme.payments.controller;
 import com.jof.api.PaymentsApi;
 import com.jof.model.*;
@@ -27,3 +28,4 @@ public class PaymentApiController implements PaymentsApi {
             return Instancio.create(PendingPaymentResponse.class);
     }
 }
+*/

@@ -1,3 +1,4 @@
+/*
 package org.acme.notes.entity;
 
 import jakarta.persistence.*;
@@ -29,3 +30,4 @@ public class SubsystemStep {
     @Column(name = "step_data", columnDefinition = "jsonb")
     public String stepData; // Store JSON as String or map to POJO
 }
+*/
