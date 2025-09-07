@@ -77,3 +77,145 @@ Create your first JPA entity
 Easily start your REST Web Services
 
 [Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+
+
+
+# ðŸ“„ Safe Markdown REST API
+
+This project provides a simple REST API that:
+- Accepts Markdown input
+- Validates and sanitizes it against XSS
+- Stores it safely as Markdown
+- Returns Markdown or sanitized HTML on demand
+
+---
+
+## 1. `pom.xml`
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>markdown-api</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <dependencies>
+        <!-- flexmark for markdown parsing/rendering -->
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-all</artifactId>
+            <version>0.64.8</version>
+        </dependency>
+
+        <!-- flexmark HTML to Markdown converter -->
+        <dependency>
+            <groupId>com.vladsch.flexmark</groupId>
+            <artifactId>flexmark-html2md-converter</artifactId>
+            <version>0.64.8</version>
+        </dependency>
+
+        <!-- OWASP Java HTML Sanitizer -->
+        <dependency>
+            <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
+            <artifactId>owasp-java-html-sanitizer</artifactId>
+            <version>20211018.1</version>
+        </dependency>
+    </dependencies>
+</project>
+```
+
+---
+
+## 2. `MarkdownApi.java`
+
+```java
+
+                if (body.trim().isEmpty()) {
+                    sendResponse(exchange, 400, "{\"error\":\"Markdown cannot be empty\"}");
+                    return;
+                }
+
+                if (!mdService.looksLikeMarkdown(body)) {
+                    sendResponse(exchange, 400, "{\"error\":\"Does not look like valid Markdown\"}");
+                    return;
+                }
+
+                String safeMarkdown = mdService.sanitizeMarkdown(body);
+                String id = UUID.randomUUID().toString();
+                db.put(id, safeMarkdown);
+
+                sendResponse(exchange, 200,
+                        String.format("{\"id\":\"%s\",\"markdown\":%s}", id, jsonEscape(safeMarkdown)));
+                return;
+            }
+
+            if ("GET".equalsIgnoreCase(method) && path.startsWith("/notes/")) {
+                String[] parts = path.split("/");
+                if (parts.length < 3) {
+                    sendResponse(exchange, 400, "{\"error\":\"Missing id\"}");
+                    return;
+                }
+                String id = parts[2];
+                String markdown = db.get(id);
+                if (markdown == null) {
+                    sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
+                    return;
+                }
+
+                if (path.endsWith("/html")) {
+                    String safeHtml = mdService.renderToSafeHtml(markdown);
+                    sendResponse(exchange, 200,
+                            String.format("{\"id\":\"%s\",\"html\":%s}", id, jsonEscape(safeHtml)));
+                } else {
+                    sendResponse(exchange, 200,
+                            String.format("{\"id\":\"%s\",\"markdown\":%s}", id, jsonEscape(markdown)));
+                }
+                return;
+            }
+
+            sendResponse(exchange, 404, "{\"error\":\"Not found\"}");
+        }
+    }
+
+
+class MarkdownSecurityService {
+    private final Parser parser = Parser.builder().build();
+    private final HtmlRenderer renderer = HtmlRenderer.builder().build();
+    private final FlexmarkHtmlConverter htmlToMd = FlexmarkHtmlConverter.builder().build();
+
+    private final PolicyFactory sanitizer = Sanitizers.BLOCKS
+            .and(Sanitizers.FORMATTING)
+            .and(Sanitizers.LINKS)
+            .and(Sanitizers.IMAGES)
+            .and(Sanitizers.TABLES);
+
+    private static final Pattern MARKDOWN_SYNTAX = Pattern.compile(
+            "(?m)(^#{1,6}\\s.+$)|(^[-*+]\\s.+$)|(\\*\\*.+?\\*\\*)|(\\[.+?]\\(.+?\\))"
+    );
+
+    public boolean looksLikeMarkdown(String input) {
+        return input != null && MARKDOWN_SYNTAX.matcher(input).find();
+    }
+
+    public String sanitizeMarkdown(String rawMarkdown) {
+        if (rawMarkdown == null) return "";
+        Document doc = parser.parse(rawMarkdown);
+        String rawHtml = renderer.render(doc);
+        String safeHtml = sanitizer.sanitize(rawHtml);
+        return htmlToMd.convert(safeHtml);
+    }
+
+    public String renderToSafeHtml(String markdown) {
+        Document doc = parser.parse(markdown);
+        String rawHtml = renderer.render(doc);
+        return sanitizer.sanitize(rawHtml);
+    }
+}
+```
+
+---
+
+```
